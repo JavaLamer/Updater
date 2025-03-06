@@ -1,54 +1,44 @@
-def parse_file(file_path):
-    with open(file_path, "r") as file:
-        lines = file.readlines()
-    
-    servers = {}
-    current_server = None
-    
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        
-        if ":" not in line:
-            current_server = line
-            servers[current_server] = []
-        else:
-            parts = line.split()
-            if len(parts) == 2:
-                servers[current_server].append(tuple(parts))
-    
-    return servers
+import re
 
-
-def find_matches(servers):
-    matches = []
+def parse_log(file_path):
+    servers = []
+    ip_pairs = []
     
-    for server1, connections1 in servers.items():
-        for server2, connections2 in servers.items():
-            if server1 == server2:
+    with open(file_path, 'r') as file:
+        for line in file:
+            line = line.strip()
+            if not line:
                 continue
             
-            for conn1 in connections1:
-                if conn1[::-1] in connections2:
-                    matches.append(f"{server1} -> {server2}")
+            if ':' in line and ' ' not in line:  # Определяем сервер
+                servers.append(line)
+            elif ' ' in line:  # Определяем строку с IP
+                parts = line.split()
+                if len(parts) == 2:
+                    ip_pairs.append(tuple(parts))
+    
+    matches = []
+    with open(file_path, 'r') as file:
+        known_server = None
+        for line in file:
+            line = line.strip()
+            if not line:
+                continue
+            
+            if line in servers:
+                known_server = line
+            elif ' ' in line and known_server:
+                parts = line.split()
+                if len(parts) == 2:
+                    # Проверяем на совпадения с ранее найденными парами
+                    for ip1, ip2 in ip_pairs:
+                        if (parts[0] == ip2 and parts[1] == ip1) or (parts[0] == ip1 and parts[1] == ip2):
+                            matches.append((known_server, line))
     
     return matches
 
-
-def main():
-    input_file = "input.txt"  # Укажите путь к входному файлу
-    output_file = "output.txt"  # Укажите путь к выходному файлу
-    
-    servers = parse_file(input_file)
-    matches = find_matches(servers)
-    
-    with open(output_file, "w") as file:
-        for match in matches:
-            file.write(match + "\n")
-    
-    print("Результаты сохранены в", output_file)
-
-
-if __name__ == "__main__":
-    main()
+# Использование
+file_path = 'log.txt'  # Укажите путь к вашему файлу
+matches = parse_log(file_path)
+for match in matches:
+    print(f'Match found: {match[0]} <-> {match[1]}')
