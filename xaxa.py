@@ -1,29 +1,54 @@
-def parse_connections(input_file, output_file):
-    with open(input_file, "r") as f:
-        lines = [line.strip() for line in f if line.strip()]
+def parse_file(file_path):
+    with open(file_path, "r") as file:
+        lines = file.readlines()
     
-    server_map = {}
+    servers = {}
     current_server = None
     
     for line in lines:
-        if not line[0].isdigit():  # Это название сервера
+        line = line.strip()
+        if not line:
+            continue
+        
+        if ":" not in line:
             current_server = line
-            server_map[current_server] = []
-        else:  # Это строка с соединением
-            source, dest = line.split()
-            server_map[current_server].append((source, dest))
+            servers[current_server] = []
+        else:
+            parts = line.split()
+            if len(parts) == 2:
+                servers[current_server].append(tuple(parts))
     
-    connections = {}
-    for server, conns in server_map.items():
-        for source, dest in conns:
-            for target_server, target_conns in server_map.items():
-                if server != target_server and any(dest in conn for conn in target_conns):
-                    connections[server] = target_server
-                    break
-    
-    with open(output_file, "w") as f:
-        for src, dst in connections.items():
-            f.write(f"{src} -> {dst}\n")
+    return servers
 
-# Пример вызова:
-parse_connections("input.txt", "output.txt")
+
+def find_matches(servers):
+    matches = []
+    
+    for server1, connections1 in servers.items():
+        for server2, connections2 in servers.items():
+            if server1 == server2:
+                continue
+            
+            for conn1 in connections1:
+                if conn1[::-1] in connections2:
+                    matches.append(f"{server1} -> {server2}")
+    
+    return matches
+
+
+def main():
+    input_file = "input.txt"  # Укажите путь к входному файлу
+    output_file = "output.txt"  # Укажите путь к выходному файлу
+    
+    servers = parse_file(input_file)
+    matches = find_matches(servers)
+    
+    with open(output_file, "w") as file:
+        for match in matches:
+            file.write(match + "\n")
+    
+    print("Результаты сохранены в", output_file)
+
+
+if __name__ == "__main__":
+    main()
